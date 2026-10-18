@@ -32,6 +32,9 @@ export async function getUsuario() {
  * Redirige a /index.html o al home de su rol principal.
  */
 export async function requireRole(allowedRoles) {
+  // 1. Damos un pequeño respiro inicial
+  await new Promise(resolve => setTimeout(resolve, 300));
+
   const session = await getSession();
   if (!session) {
     window.location.href = '/index.html';
@@ -43,6 +46,7 @@ export async function requireRole(allowedRoles) {
   if (allowedRoles && allowedRoles.length > 0) {
     const ok = roles.some(r => allowedRoles.includes(r));
     if (!ok) {
+      console.warn('Acceso denegado. Roles actuales:', roles);
       window.location.href = '/index.html';
       throw new Error('Rol no autorizado');
     }
