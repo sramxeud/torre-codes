@@ -13,11 +13,20 @@ function setMsg(text, type = 'error') {
 }
 
 // Si ya hay sesión, redirige
+// Si ya hay sesión, redirige
 (async () => {
   const { data } = await supabase.auth.getSession();
-  if (data.session) {
+  // Solo redirigimos si la URL actual es exactamente la del login
+  if (data.session && (window.location.pathname === '/' || window.location.pathname === '/index.html')) {
+    // Esperamos un momento por seguridad
+    await new Promise(resolve => setTimeout(resolve, 500));
     const roles = await getUserRoles();
-    window.location.href = rutaPorRol(roles);
+    const destino = rutaPorRol(roles);
+    
+    // Si el destino NO es el index, nos vamos
+    if (destino !== '/index.html') {
+      window.location.href = destino;
+    }
   }
 })();
 
