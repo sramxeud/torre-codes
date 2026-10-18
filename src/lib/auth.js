@@ -8,11 +8,18 @@ export async function getSession() {
 export async function getUserRoles() {
   const session = await getSession();
   if (!session) return [];
+
   const { data, error } = await supabase
     .from('usuario_roles')
     .select('roles(nombre)')
     .eq('usuario_id', session.user.id);
-  if (error) { console.error(error); return []; }
+
+  if (error) { 
+    console.error('Error al leer roles:', error); 
+    return []; 
+  }
+  
+  if (!data || data.length === 0) return [];
   return data.map(r => r.roles.nombre);
 }
 
@@ -27,13 +34,9 @@ export async function getUsuario() {
   return data;
 }
 
-/**
- * Bloquea la página si no hay sesión o si no tiene ninguno de los roles.
- * Redirige a /index.html o al home de su rol principal.
- */
 export async function requireRole(allowedRoles) {
-  // 1. Damos un pequeño respiro inicial
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Esperamos 1 segundo para que Supabase asiente la sesión
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   const session = await getSession();
   if (!session) {
@@ -46,7 +49,8 @@ export async function requireRole(allowedRoles) {
   if (allowedRoles && allowedRoles.length > 0) {
     const ok = roles.some(r => allowedRoles.includes(r));
     if (!ok) {
-      console.warn('Acceso denegado. Roles actuales:', roles);
+      // Si no tiene el rol, mostramos alerta y lo mandamos al login
+      alert('No tienes permisos para esta página. Tus roles son: ' + (roles.join(', ') || 'ninguno'));
       window.location.href = '/index.html';
       throw new Error('Rol no autorizado');
     }
