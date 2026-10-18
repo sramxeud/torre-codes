@@ -13,14 +13,14 @@ function setMsg(text, type = 'error') {
 }
 
 // Si ya hay sesión, redirige al destino correcto
-(async () => {
+/*(async () => {
   const { data } = await supabase.auth.getSession();
   if (data.session) {
     console.log("Sesión existente detectada, redirigiendo...");
     const roles = await getUserRoles();
     window.location.href = rutaPorRol(roles);
   }
-})();
+})();*/
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
