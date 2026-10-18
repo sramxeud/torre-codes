@@ -12,7 +12,7 @@ function setMsg(text, type = 'error') {
   msg.className = type === 'error' ? 'error-msg' : 'success-msg';
 }
 
-// Si ya hay sesión, redirige
+// 1. Si ya hay sesión (el usuario ya estaba logueado), lo redirigimos a su panel
 (async () => {
   const { data } = await supabase.auth.getSession();
   if (data.session) {
@@ -21,6 +21,7 @@ function setMsg(text, type = 'error') {
   }
 })();
 
+// 2. Cuando el usuario hace clic en "Entrar"
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   setMsg('');
@@ -39,7 +40,7 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Esperamos un momento y redirigimos
+  // Esperamos 500ms a que la sesión se guarde y redirigimos
   await new Promise(resolve => setTimeout(resolve, 500));
   const roles = await getUserRoles();
   window.location.href = rutaPorRol(roles);
