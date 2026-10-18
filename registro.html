@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crear cuenta · Edificio</title>
+  <link rel="stylesheet" href="/styles/base.css" />
+</head>
+<body>
+  <div class="auth-container">
+    <h1>Crear cuenta</h1>
+    <form id="registro-form">
+      <label for="nombres">Nombres *</label>
+      <input id="nombres" required />
+
+      <label for="apellidos">Apellidos</label>
+      <input id="apellidos" />
+
+      <label for="telefono">Teléfono</label>
+      <input id="telefono" type="tel" />
+
+      <label for="email">Correo electrónico *</label>
+      <input id="email" type="email" required autocomplete="email" />
+
+      <label for="password">Contraseña * (mín. 6)</label>
+      <input id="password" type="password" required minlength="6" autocomplete="new-password" />
+
+      <label for="rol">Soy *</label>
+      <select id="rol" required>
+        <option value="copropietario">Copropietario</option>
+        <option value="inquilino">Inquilino</option>
+      </select>
+
+      <button type="submit" id="btn-reg">Registrarme</button>
+      <div id="msg" hidden></div>
+    </form>
+    <div class="auth-links">
+      <a href="/index.html">Ya tengo cuenta</a>
+    </div>
+  </div>
+  <script type="module" src="/src/auth-registro.js"></script>
+</body>
+</html>

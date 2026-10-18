@@ -1,0 +1,74 @@
+:root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --border: #475569;
+    --radius: 8px;
+  }
+  
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  
+  .auth-container {
+    max-width: 420px;
+    margin: 8vh auto;
+    padding: 2rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+  .auth-container h1 { margin-top: 0; font-size: 1.4rem; }
+  .auth-container label { display: block; margin-top: 1rem; font-size: .9rem; color: var(--muted); }
+  .auth-container input,
+  .auth-container select {
+    width: 100%;
+    margin-top: .35rem;
+    padding: .65rem .8rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 1rem;
+  }
+  .auth-container button {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: .8rem;
+    border: 0;
+    border-radius: 6px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .auth-container button:hover { background: var(--primary-hover); }
+  .auth-container button:disabled { opacity: .6; cursor: not-allowed; }
+  .auth-links { margin-top: 1rem; text-align: center; font-size: .9rem; }
+  .auth-links a { color: var(--primary); text-decoration: none; }
+  .auth-links a:hover { text-decoration: underline; }
+  .error-msg { color: var(--danger); margin-top: .8rem; font-size: .9rem; }
+  .success-msg { color: var(--success); margin-top: .8rem; font-size: .9rem; }
+  
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    padding: .9rem 1.2rem; border-radius: 8px;
+    background: var(--surface-2); color: var(--text);
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    z-index: 9999; font-size: .9rem;
+  }
+  .toast-success { background: var(--success); color: #04260f; }
+  .toast-error { background: var(--danger); color: white; }

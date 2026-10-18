@@ -1,0 +1,11 @@
+{
+    "rewrites": [
+      { "source": "/admin", "destination": "/admin.html" },
+      { "source": "/directiva", "destination": "/directiva.html" },
+      { "source": "/conserje", "destination": "/conserje.html" },
+      { "source": "/copropietario", "destination": "/copropietario.html" },
+      { "source": "/registro", "destination": "/registro.html" },
+      { "source": "/forgot-password", "destination": "/forgot-password.html" },
+      { "source": "/reset-password", "destination": "/reset-password.html" }
+    ]
+  }
