@@ -23,7 +23,7 @@ function setMsg(text, type = 'error') {
 })();*/
 
 form.addEventListener('submit', async (e) => {
-  e.preventDefault();
+    e.preventDefault();
   setMsg('');
   btn.disabled = true;
   btn.textContent = 'Entrando...';
@@ -58,9 +58,13 @@ form.addEventListener('submit', async (e) => {
   const roles = await getUserRoles();
   console.log("Roles obtenidos:", roles);
 
-  const destino = rutaPorRol(roles);
-  console.log("Redirigiendo a:", destino);
-
-  setMsg('Entrando...', 'success');
-  window.location.href = destino;
+  // EN VEZ DE REDIRIGIR, MOSTRAMOS EL MENSAJE EN PANTALLA
+  if (roles.length > 0) {
+    setMsg(`Login exitoso. Tus roles son: ${roles.join(', ')}. Revisa la consola.`, 'success');
+  } else {
+    setMsg('Login exitoso, pero NO tienes ningún rol asignado en la base de datos.', 'error');
+  }
+  
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
 });
