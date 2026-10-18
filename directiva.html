@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel Directiva · Edificio</title>
+  <link rel="stylesheet" href="/styles/base.css" />
+  <style>
+    /* Estilos rápidos para las pestañas */
+    .tabs-container { max-width: 900px; margin: 2rem auto; background: #1e293b; border-radius: 8px; overflow: hidden; }
+    .tabs-header { display: flex; background: #0f172a; border-bottom: 1px solid #334155; }
+    .tab-btn { flex: 1; padding: 1rem; background: none; border: none; color: #94a3b8; font-weight: 600; cursor: pointer; transition: 0.3s; }
+    .tab-btn:hover { background: #1e293b; color: white; }
+    .tab-btn.active { background: #1e293b; color: white; border-bottom: 3px solid #3b82f6; }
+    .tab-content { padding: 2rem; display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Tarjeta del conserje */
+    .conserje-card { display: flex; align-items: center; gap: 2rem; background: #334155; padding: 2rem; border-radius: 12px; }
+    .conserje-card img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #3b82f6; }
+    .conserje-info h2 { margin: 0 0 0.5rem 0; font-size: 2rem; color: white; }
+    .conserje-info p { margin: 0; color: #cbd5e1; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <div class="tabs-container">
+    <!-- Cabecera de pestañas -->
+    <div class="tabs-header">
+      <button class="tab-btn active" data-target="tab-turno">Conserje de Turno</button>
+      <button class="tab-btn" data-target="tab-proximamente" disabled style="opacity: 0.5; cursor: not-allowed;">Próximamente...</button>
+    </div>
+
+    <!-- Contenido: Pestaña 1 -->
+    <div id="tab-turno" class="tab-content active">
+      <h3 style="margin-top: 0; color: #94a3b8; text-transform: uppercase; font-size: 0.9rem;">Hoy en el edificio</h3>
+      
+      <div id="conserje-hoy" class="conserje-card">
+        <!-- Aquí el JavaScript inyectará los datos -->
+        <p>Cargando información del turno...</p>
+      </div>
+    </div>
+
+    <!-- Contenido: Pestaña 2 -->
+    <div id="tab-proximamente" class="tab-content">
+      <h3>Módulo en construcción</h3>
+      <p>Aquí irán las órdenes y observaciones.</p>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 1rem;">
+    <button id="btn-logout" style="background: #ef4444; width: auto; padding: 0.5rem 1rem;">Cerrar Sesión</button>
+  </div>
+
+  <script type="module" src="/src/directiva/main.js"></script>
+</body>
+</html>
