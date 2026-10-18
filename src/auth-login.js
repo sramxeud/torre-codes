@@ -12,21 +12,13 @@ function setMsg(text, type = 'error') {
   msg.className = type === 'error' ? 'error-msg' : 'success-msg';
 }
 
-// Si ya hay sesión, redirige
-// Si ya hay sesión, redirige
+// Si ya hay sesión, redirige al destino correcto
 (async () => {
   const { data } = await supabase.auth.getSession();
-  // Solo redirigimos si la URL actual es exactamente la del login
-  if (data.session && (window.location.pathname === '/' || window.location.pathname === '/index.html')) {
-    // Esperamos un momento por seguridad
-    await new Promise(resolve => setTimeout(resolve, 500));
+  if (data.session) {
+    console.log("Sesión existente detectada, redirigiendo...");
     const roles = await getUserRoles();
-    const destino = rutaPorRol(roles);
-    
-    // Si el destino NO es el index, nos vamos
-    if (destino !== '/index.html') {
-      window.location.href = destino;
-    }
+    window.location.href = rutaPorRol(roles);
   }
 })();
 
@@ -39,9 +31,12 @@ form.addEventListener('submit', async (e) => {
   const email = qs('#email').value.trim();
   const password = qs('#password').value;
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  console.log("Intentando iniciar sesión con:", email);
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    console.error("Error de Supabase Auth:", error);
     if (error.message.toLowerCase().includes('email not confirmed')) {
       setMsg('Debes confirmar tu correo. Revisa tu bandeja de entrada.');
     } else if (error.message.toLowerCase().includes('invalid login')) {
@@ -54,6 +49,18 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
+  console.log("Login exitoso. Sesión creada:", data.session.user.id);
+
+  // Damos un pequeño respiro para que la sesión se guarde bien en el navegador
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  console.log("Obteniendo roles del usuario...");
   const roles = await getUserRoles();
-  window.location.href = rutaPorRol(roles);
+  console.log("Roles obtenidos:", roles);
+
+  const destino = rutaPorRol(roles);
+  console.log("Redirigiendo a:", destino);
+
+  setMsg('Entrando...', 'success');
+  window.location.href = destino;
 });
