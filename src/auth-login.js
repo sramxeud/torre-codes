@@ -1,4 +1,5 @@
 import { supabase } from './lib/supabase.js';
+import { getUserRoles, rutaPorRol } from './lib/auth.js';
 import { qs } from './lib/ui.js';
 
 const form = qs('#login-form');
@@ -10,6 +11,15 @@ function setMsg(text, type = 'error') {
   msg.textContent = text;
   msg.className = type === 'error' ? 'error-msg' : 'success-msg';
 }
+
+// Si ya hay sesión, redirige
+(async () => {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) {
+    const roles = await getUserRoles();
+    window.location.href = rutaPorRol(roles);
+  }
+})();
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -29,6 +39,8 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Redirección forzada al panel de admin
-  window.location.href = '/admin.html'; 
+  // Esperamos un momento y redirigimos
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const roles = await getUserRoles();
+  window.location.href = rutaPorRol(roles);
 });
