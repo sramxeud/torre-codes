@@ -5,15 +5,11 @@ const form = qs('#login-form');
 const msg = qs('#msg');
 const btn = qs('#btn-login');
 
-// 1. Si el usuario ya inició sesión antes, lo mandamos directo a su panel
 (async () => {
   const { data } = await supabase.auth.getSession();
-  if (data.session) {
-    redirigirSegunRol(data.session.user.id);
-  }
+  if (data.session) redirigirSegunRol(data.session.user.id);
 })();
 
-// 2. Función que lee la tabla y decide a dónde ir
 async function redirigirSegunRol(userId) {
   const { data, error } = await supabase
     .from('usuario_roles')
@@ -25,7 +21,15 @@ async function redirigirSegunRol(userId) {
     return;
   }
 
-  const roles = data.map(r => r.roles.nombre);
+  // EL FILTRO BLINDADO: Ignora si viene null
+  const roles = data
+    .map(r => r.roles ? r.roles.nombre : null)
+    .filter(nombre => nombre !== null);
+
+  if (roles.length === 0) {
+    alert("Error: El rol existe pero los permisos de la tabla 'roles' están bloqueados.");
+    return;
+  }
 
   if (roles.includes('administrador')) {
     window.location.href = '/admin.html';
@@ -38,17 +42,16 @@ async function redirigirSegunRol(userId) {
   }
 }
 
-// 3. Cuando el usuario hace clic en "Entrar"
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   btn.disabled = true;
   btn.textContent = 'Entrando...';
-
+  
   const email = qs('#email').value.trim();
   const password = qs('#password').value;
-
+  
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
+  
   if (error) {
     msg.hidden = false;
     msg.textContent = error.message;
@@ -57,7 +60,6 @@ form.addEventListener('submit', async (e) => {
     btn.textContent = 'Entrar';
     return;
   }
-
-  // Si el login es exitoso, leemos sus roles y redirigimos
+  
   redirigirSegunRol(data.user.id);
 });
