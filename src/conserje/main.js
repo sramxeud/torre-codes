@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'; // Asegúrate de que esta ruta se
 // --- LÓGICA PARA EL FORMULARIO DE TRABAJOS ---
 document.getElementById('form-trabajo').addEventListener('submit', async (e) => {
   e.preventDefault();
+  console.log("Iniciando guardado de trabajo...");
   
   const titulo = document.getElementById('trabajo-titulo').value;
   const descripcion = document.getElementById('trabajo-descripcion').value;
@@ -18,10 +19,20 @@ document.getElementById('form-trabajo').addEventListener('submit', async (e) => 
 
   try {
     // 1. Obtener usuario
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No hay sesión activa");
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error("Error de autenticación:", authError);
+      throw new Error("Error al verificar la sesión.");
+    }
+
+    console.log("Usuario logueado:", user); // <-- MIRA ESTO EN LA CONSOLA F12
+
+    if (!user) throw new Error("No hay sesión activa. Vuelve a iniciar sesión.");
 
     // 2. Guardar el trabajo en la BD
+    console.log("Insertando en tabla trabajos con ID:", user.id);
+    
     const { data: trabajo, error: errorTrabajo } = await supabase
       .from('trabajos')
       .insert([{
@@ -34,17 +45,24 @@ document.getElementById('form-trabajo').addEventListener('submit', async (e) => 
       .select()
       .single();
 
-    if (errorTrabajo) throw errorTrabajo;
+    if (errorTrabajo) {
+      console.error("Error al insertar trabajo en BD:", errorTrabajo);
+      throw errorTrabajo;
+    }
+
+    console.log("Trabajo guardado exitosamente en BD:", trabajo);
 
     // 3. Subir fotos y guardarlas en imagenes_adjuntas
+    console.log("Iniciando subida de fotos...");
     await subirFotos(fotos, trabajo.id, null);
+    console.log("Fotos subidas exitosamente.");
     
     alert("Trabajo guardado con éxito");
     e.target.reset();
 
   } catch (error) {
-    console.error(error);
-    alert("Error al guardar trabajo: " + error.message);
+    console.error("Error general:", error);
+    alert("Error al guardar trabajo: " + (error.message || JSON.stringify(error)));
   } finally {
     btn.disabled = false;
     btn.textContent = "Guardar Trabajo";
@@ -95,7 +113,7 @@ document.getElementById('form-anuncio').addEventListener('submit', async (e) => 
 
   } catch (error) {
     console.error(error);
-    alert("Error al publicar anuncio: " + error.message);
+    alert("Error al publicar anuncio: " + (error.message || JSON.stringify(error)));
   } finally {
     btn.disabled = false;
     btn.textContent = "Publicar Anuncio";
@@ -105,25 +123,39 @@ document.getElementById('form-anuncio').addEventListener('submit', async (e) => 
 // --- FUNCIÓN AUXILIAR PARA SUBIR FOTOS ---
 async function subirFotos(archivos, trabajoId, avisoId) {
   for (const archivo of archivos) {
-    const nombreArchivo = `evidencias/${Date.now()}-${archivo.name}`;
+    // CORRECCIÓN: Quitamos "evidencias/" del inicio del nombre
+    const nombreArchivo = `${Date.now()}-${archivo.name}`;
+    console.log("Subiendo archivo:", nombreArchivo);
     
     // Subir a storage
     const { error: uploadError } = await supabase.storage
-      .from('evidencias') // <-- Nombre del bucket
+      .from('evidencias') 
       .upload(nombreArchivo, archivo);
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Error al subir foto a storage:", uploadError);
+      throw uploadError;
+    }
 
     // Obtener URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('evidencias')
       .getPublicUrl(nombreArchivo);
 
+    console.log("URL pública obtenida:", publicUrl);
+
     // Insertar en la tabla imagenes_adjuntas
-    await supabase.from('imagenes_adjuntas').insert([{
-      trabajo_id: trabajoId,
-      aviso_id: avisoId,
-      url_imagen: publicUrl
-    }]);
+    const { error: insertImgError } = await supabase
+      .from('imagenes_adjuntas')
+      .insert([{
+        trabajo_id: trabajoId,
+        aviso_id: avisoId,
+        url_imagen: publicUrl
+      }]);
+
+    if (insertImgError) {
+      console.error("Error al insertar URL en imagenes_adjuntas:", insertImgError);
+      throw insertImgError;
+    }
   }
 }
