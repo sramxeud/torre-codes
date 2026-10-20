@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Conserje - TORRE CODES</title>
+  <!-- Enlaza aquí tu CSS global si tienes uno, por ejemplo: -->
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <style>
+    /* Estilos básicos rápidos para que se vea bien (luego los pasas a tu CSS) */
+    body { font-family: sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+    .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; font-weight: bold; color: #666; }
+    .tab-btn.active { color: #007bff; border-bottom: 2px solid #007bff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    textarea { resize: vertical; height: 100px; }
+    button[type="submit"] { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+    button[type="submit"]:hover { background-color: #0056b3; }
+    .help-text { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Panel de Conserje</h1>
+    <p>Bienvenido. Aquí puedes registrar tus trabajos y publicar anuncios de emergencia.</p>
+
+    <!-- Pestañas -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab('trabajo')">Registrar Trabajo</button>
+      <button class="tab-btn" onclick="openTab('anuncio')">Publicar Anuncio</button>
+    </div>
+
+    <!-- FORMULARIO DE TRABAJO -->
+    <div id="trabajo" class="tab-content active">
+      <form id="form-trabajo">
+        <div class="form-group">
+          <label for="trabajo-titulo">Título del trabajo</label>
+          <input type="text" id="trabajo-titulo" required placeholder="Ej: Reparación de luminaria pasillo 2" />
+        </div>
+        
+        <div class="form-group">
+          <label for="trabajo-descripcion">Descripción</label>
+          <textarea id="trabajo-descripcion" required placeholder="Detalla qué se hizo o qué se necesita..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="trabajo-fotos">Fotos (Mínimo 1, Máximo 8)</label>
+          <input type="file" id="trabajo-fotos" accept="image/*" multiple required />
+          <span class="help-text">Puedes seleccionar varias fotos a la vez. La fecha y hora se registrarán automáticamente.</span>
+        </div>
+
+        <button type="submit">Guardar Trabajo</button>
+      </form>
+    </div>
+
+    <!-- FORMULARIO DE ANUNCIO -->
+    <div id="anuncio" class="tab-content">
+      <form id="form-anuncio">
+        <div class="form-group">
+          <label for="anuncio-titulo">Título del Anuncio / Incidente</label>
+          <input type="text" id="anuncio-titulo" required placeholder="Ej: Fuga de agua en el sótano" />
+        </div>
+        
+        <div class="form-group">
+          <label for="anuncio-mensaje">Mensaje</label>
+          <textarea id="anuncio-mensaje" required placeholder="Explica el incidente o emergencia..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="anuncio-fotos">Fotos (Mínimo 1, Máximo 8)</label>
+          <input type="file" id="anuncio-fotos" accept="image/*" multiple required />
+          <span class="help-text">La fecha y hora se registrarán automáticamente.</span>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="anuncio-importante" />
+            Marcar como anuncio importante (No se borrará después de una semana)
+          </label>
+        </div>
+
+        <button type="submit">Publicar Anuncio</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Aquí importamos tu lógica de JS -->
+  <script type="module" src="/src/conserje/main.js"></script>
+  
+  <script>
+    // Función simple para cambiar de pestaña
+    function openTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabName).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+</body>
+</html>
