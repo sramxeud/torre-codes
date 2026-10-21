@@ -1,218 +1,161 @@
-import { supabase } from '../lib/supabase.js'; 
+import { supabase } from '../lib/supabase.js';
 
-// --- 1. CERRAR SESIÓN ---
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    alert("Error al cerrar sesión: " + error.message);
-  } else {
-    window.location.href = '/index.html'; 
-  }
-});
+let datosGlobales = { trabajos: [], avisos: [] };
 
-// --- 2. CARGA INICIAL ---
-document.addEventListener('DOMContentLoaded', async () => {
-  await cargarTrabajosRecientes();
-  await cargarAnunciosRecientes();
-});
-
-// --- 3. CARGAR TRABAJOS ---
-async function cargarTrabajosRecientes() {
-  const contenedor = document.getElementById('contenedor-trabajos');
+// --- 1. VERIFICACIÓN DE SESIÓN ---
+async function verificarAcceso() {
+  const { data: { user } } = await supabase.auth.getUser();
   
+  if (!user) {
+    // Si no está logueado, lo mandamos al login
+    window.location.href = '/index.html';
+    return;
+  }
+
+  // Mostrar el panel y ocultar la pantalla de carga
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('panel-directiva').style.display = 'block';
+  
+  // Cargar datos
+  await cargarDatosRecientes();
+}
+
+// --- 2. CERRAR SESIÓN ---
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  window.location.href = '/index.html';
+});
+
+// --- 3. CARGAR TRABAJOS Y ANUNCIOS DESDE SUPABASE ---
+async function cargarDatosRecientes() {
+  const haceUnaSemana = new Date();
+  haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
+
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; 
-
-    const { data: trabajos, error } = await supabase
+    // Traer trabajos de la última semana (sin importar quién los hizo)
+    const { data: trabajos, error: errTrabajos } = await supabase
       .from('trabajos')
-      .select(`id, titulo, descripcion, fecha_inicio, estado, imagenes_adjuntas (url_imagen)`)
-      .eq('conserje_id', user.id)
-      .order('fecha_inicio', { ascending: false })
-      .limit(10);
+      .select(`*, imagenes_adjuntas (url_imagen)`)
+      .gte('fecha_inicio', haceUnaSemana.toISOString())
+      .order('fecha_inicio', { ascending: false });
 
-    if (error) throw error;
+    if (errTrabajos) throw errTrabajos;
+    datosGlobales.trabajos = trabajos || [];
 
-    if (trabajos.length === 0) {
-      contenedor.innerHTML = '<p>No has registrado trabajos aún.</p>';
-      return;
-    }
+    // Traer avisos (última semana O los marcados como importantes)
+    const { data: avisos, error: errAvisos } = await supabase
+      .from('avisos')
+      .select(`*, imagenes_adjuntas (url_imagen)`)
+      .or(`created_at.gte.${haceUnaSemana.toISOString()},es_importante.eq.true`)
+      .order('created_at', { ascending: false });
 
-    contenedor.innerHTML = '';
-    trabajos.forEach(trabajo => {
+    if (errAvisos) throw errAvisos;
+    datosGlobales.avisos = avisos || [];
+
+    renderizarDatos();
+
+  } catch (error) {
+    console.error("Error al cargar datos:", error);
+    alert("Error al cargar la información de la base de datos.");
+  }
+}
+
+// --- 4. RENDERIZAR EN PANTALLA ---
+function renderizarDatos() {
+  const contAnuncios = document.getElementById('contenedor-anuncios');
+  const contTrabajos = document.getElementById('contenedor-trabajos');
+
+  // Renderizar Anuncios
+  if (datosGlobales.avisos.length === 0) {
+    contAnuncios.innerHTML = '<p>No hay anuncios recientes.</p>';
+  } else {
+    contAnuncios.innerHTML = datosGlobales.avisos.map(aviso => {
+      const fecha = new Date(aviso.created_at).toLocaleString();
+      const importanteClass = aviso.es_importante ? 'importante' : '';
+      const badge = aviso.es_importante ? '🔴 <b>URGENTE</b> - ' : '';
+      
+      let fotosHTML = '';
+      if (aviso.imagenes_adjuntas && aviso.imagenes_adjuntas.length > 0) {
+        fotosHTML = '<div class="fotos-container">';
+        aviso.imagenes_adjuntas.forEach(img => {
+          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')">`;
+        });
+        fotosHTML += '</div>';
+      }
+
+      return `
+        <div class="card card-anuncio ${importanteClass}">
+          <h3>${aviso.titulo}</h3>
+          <div class="meta">${badge} 📅 ${fecha}</div>
+          <div class="desc">${aviso.mensaje}</div>
+          ${fotosHTML}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Renderizar Trabajos
+  if (datosGlobales.trabajos.length === 0) {
+    contTrabajos.innerHTML = '<p>No hay trabajos registrados en los últimos 7 días.</p>';
+  } else {
+    contTrabajos.innerHTML = datosGlobales.trabajos.map(trabajo => {
       const fecha = new Date(trabajo.fecha_inicio).toLocaleString();
+      
       let fotosHTML = '';
       if (trabajo.imagenes_adjuntas && trabajo.imagenes_adjuntas.length > 0) {
         fotosHTML = '<div class="fotos-container">';
         trabajo.imagenes_adjuntas.forEach(img => {
-          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')" alt="Evidencia">`;
+          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')">`;
         });
         fotosHTML += '</div>';
       }
 
-      const card = document.createElement('div');
-      card.className = 'card-trabajo';
-      card.innerHTML = `
-        <h3>${trabajo.titulo}</h3>
-        <div class="fecha">📅 ${fecha} | Estado: <b>${trabajo.estado}</b></div>
-        <div class="desc">${trabajo.descripcion}</div>
-        ${fotosHTML}
+      return `
+        <div class="card card-trabajo">
+          <h3>${trabajo.titulo}</h3>
+          <div class="meta">📅 ${fecha} | Estado: <b>${trabajo.estado}</b></div>
+          <div class="desc">${trabajo.descripcion}</div>
+          ${fotosHTML}
+        </div>
       `;
-      contenedor.appendChild(card);
-    });
-  } catch (error) {
-    console.error("Error al cargar trabajos:", error);
-    contenedor.innerHTML = '<p>Error al cargar los trabajos.</p>';
+    }).join('');
   }
 }
 
-// --- 4. CARGAR ANUNCIOS ---
-async function cargarAnunciosRecientes() {
-  const contenedor = document.getElementById('contenedor-anuncios');
+// --- 5. DESCARGAR RESPALDO CSV ---
+window.descargarRespaldoCSV = function() {
+  if (datosGlobales.trabajos.length === 0 && datosGlobales.avisos.length === 0) {
+    return alert("No hay datos para descargar.");
+  }
+
+  let csvContent = "TIPO,TITULO,DESCRIPCION/MENSAJE,FECHA,FOTOS\n";
   
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  // Agregar Trabajos
+  datosGlobales.trabajos.forEach(t => {
+    const fotos = t.imagenes_adjuntas ? t.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
+    const titulo = t.titulo.replace(/,/g, '');
+    const desc = t.descripcion ? t.descripcion.replace(/,/g, '').replace(/\n/g, ' ') : "";
+    csvContent += `TRABAJO,"${titulo}","${desc}","${t.fecha_inicio}","${fotos}"\n`;
+  });
 
-    const { data: anuncios, error } = await supabase
-      .from('avisos')
-      .select(`id, titulo, mensaje, created_at, es_importante, imagenes_adjuntas (url_imagen)`)
-      .eq('autor_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
+  // Agregar Avisos
+  datosGlobales.avisos.forEach(a => {
+    const fotos = a.imagenes_adjuntas ? a.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
+    const importante = a.es_importante ? "SI" : "NO";
+    const titulo = a.titulo.replace(/,/g, '');
+    const desc = a.mensaje ? a.mensaje.replace(/,/g, '').replace(/\n/g, ' ') : "";
+    csvContent += `AVISO (Importante: ${importante}),"${titulo}","${desc}","${a.created_at}","${fotos}"\n`;
+  });
 
-    if (error) throw error;
-
-    if (anuncios.length === 0) {
-      contenedor.innerHTML = '<p>No has publicado anuncios aún.</p>';
-      return;
-    }
-
-    contenedor.innerHTML = '';
-    anuncios.forEach(anuncio => {
-      const fecha = new Date(anuncio.created_at).toLocaleString();
-      let badge = `<span class="badge-urgente">INCIDENTE</span>`;
-      let claseExtra = '';
-      if (anuncio.es_importante) {
-        badge = `<span class="badge-urgente badge-importante">URGENTE</span>`;
-        claseExtra = 'importante';
-      }
-      
-      let fotosHTML = '';
-      if (anuncio.imagenes_adjuntas && anuncio.imagenes_adjuntas.length > 0) {
-        fotosHTML = '<div class="fotos-container">';
-        anuncio.imagenes_adjuntas.forEach(img => {
-          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')" alt="Evidencia">`;
-        });
-        fotosHTML += '</div>';
-      }
-
-      const card = document.createElement('div');
-      card.className = `card-anuncio ${claseExtra}`; 
-      card.innerHTML = `
-        ${badge}
-        <h3>${anuncio.titulo}</h3>
-        <div class="fecha">📅 ${fecha}</div>
-        <div class="desc">${anuncio.mensaje}</div>
-        ${fotosHTML}
-      `;
-      contenedor.appendChild(card);
-    });
-  } catch (error) {
-    console.error("Error al cargar anuncios:", error);
-    contenedor.innerHTML = '<p>Error al cargar los anuncios.</p>';
-  }
+  // Generar descarga
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `respaldo_directiva_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
-// --- 5. GUARDAR TRABAJO ---
-document.getElementById('form-trabajo').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const titulo = document.getElementById('trabajo-titulo').value;
-  const descripcion = document.getElementById('trabajo-descripcion').value;
-  const fotos = document.getElementById('trabajo-fotos').files;
-
-  if (fotos.length < 1 || fotos.length > 8) return alert("Debes subir entre 1 y 8 fotos.");
-
-  const btn = e.target.querySelector('button');
-  btn.disabled = true;
-  btn.textContent = "Subiendo...";
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No hay sesión activa.");
-
-    const { data: trabajo, error: errorTrabajo } = await supabase
-      .from('trabajos')
-      .insert([{ conserje_id: user.id, titulo, descripcion, estado: 'completado', fecha_inicio: new Date().toISOString() }])
-      .select().single();
-
-    if (errorTrabajo) throw errorTrabajo;
-    await subirFotos(fotos, trabajo.id, null);
-    
-    alert("Trabajo guardado con éxito");
-    e.target.reset();
-    await cargarTrabajosRecientes(); // Recargar lista
-  } catch (error) {
-    console.error(error);
-    alert("Error al guardar trabajo: " + (error.message || JSON.stringify(error)));
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Guardar Trabajo";
-  }
-});
-
-// --- 6. GUARDAR ANUNCIO ---
-document.getElementById('form-anuncio').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const titulo = document.getElementById('anuncio-titulo').value;
-  const mensaje = document.getElementById('anuncio-mensaje').value;
-  const esImportante = document.getElementById('anuncio-importante').checked;
-  const fotos = document.getElementById('anuncio-fotos').files;
-
-  if (fotos.length < 1 || fotos.length > 8) return alert("Debes subir entre 1 y 8 fotos.");
-
-  const btn = e.target.querySelector('button');
-  btn.disabled = true;
-  btn.textContent = "Publicando...";
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No hay sesión activa");
-
-    const { data: aviso, error: errorAviso } = await supabase
-      .from('avisos')
-      .insert([{ autor_id: user.id, titulo, mensaje, es_importante: esImportante, created_at: new Date().toISOString() }])
-      .select().single();
-
-    if (errorAviso) throw errorAviso;
-    await subirFotos(fotos, null, aviso.id);
-
-    alert("Anuncio publicado con éxito");
-    e.target.reset();
-    await cargarAnunciosRecientes(); // Recargar lista
-  } catch (error) {
-    console.error(error);
-    alert("Error al publicar anuncio: " + (error.message || JSON.stringify(error)));
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Publicar Anuncio";
-  }
-});
-
-// --- 7. FUNCIÓN AUXILIAR SUBIR FOTOS ---
-async function subirFotos(archivos, trabajoId, avisoId) {
-  for (const archivo of archivos) {
-    const nombreArchivo = `${Date.now()}-${archivo.name}`;
-    
-    const { error: uploadError } = await supabase.storage.from('evidencias').upload(nombreArchivo, archivo);
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage.from('evidencias').getPublicUrl(nombreArchivo);
-
-    const { error: insertImgError } = await supabase
-      .from('imagenes_adjuntas')
-      .insert([{ trabajo_id: trabajoId, aviso_id: avisoId, url_imagen: publicUrl }]);
-
-    if (insertImgError) throw insertImgError;
-  }
-}
+// --- INICIO ---
+verificarAcceso();

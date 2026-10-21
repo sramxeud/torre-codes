@@ -3,52 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Panel Directiva · Edificio</title>
+  <title>Directiva · Panel de Control</title>
   <link rel="stylesheet" href="/styles/base.css" />
   <style>
-    /* Estilos rápidos para las pestañas */
-    .tabs-container { max-width: 900px; margin: 2rem auto; background: #1e293b; border-radius: 8px; overflow: hidden; }
-    .tabs-header { display: flex; background: #0f172a; border-bottom: 1px solid #334155; }
-    .tab-btn { flex: 1; padding: 1rem; background: none; border: none; color: #94a3b8; font-weight: 600; cursor: pointer; transition: 0.3s; }
-    .tab-btn:hover { background: #1e293b; color: white; }
-    .tab-btn.active { background: #1e293b; color: white; border-bottom: 3px solid #3b82f6; }
-    .tab-content { padding: 2rem; display: none; }
-    .tab-content.active { display: block; }
+    /* Mismos estilos oscuros del admin para mantener consistencia */
+    body { background: var(--bg, #0f172a); color: var(--text, #f1f5f9); font-family: system-ui, sans-serif; padding: 20px; margin: 0; }
+    .admin-container { max-width: 1100px; margin: 0 auto; }
     
-    /* Tarjeta del conserje */
-    .conserje-card { display: flex; align-items: center; gap: 2rem; background: #334155; padding: 2rem; border-radius: 12px; }
-    .conserje-card img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #3b82f6; }
-    .conserje-info h2 { margin: 0 0 0.5rem 0; font-size: 2rem; color: white; }
-    .conserje-info p { margin: 0; color: #cbd5e1; font-size: 1.1rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--surface, #1e293b); padding: 20px; border-radius: 8px; border-bottom: 3px solid var(--success, #22c55e); }
+    .header h1 { margin: 0; }
+    .btn-logout { background: var(--danger, #ef4444); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    
+    .btn-download { background: var(--success, #22c55e); color: #000; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-download:hover { opacity: 0.9; }
+
+    /* Tarjetas */
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .card { background: var(--surface-2, #334155); border: 1px solid var(--border, #475569); border-radius: 8px; padding: 15px; position: relative; }
+    .card-trabajo { border-left: 4px solid var(--primary, #3b82f6); }
+    .card-anuncio { border-left: 4px solid var(--warning, #f59e0b); }
+    .card-anuncio.importante { border-left: 4px solid var(--danger, #ef4444); background: rgba(239, 68, 68, 0.05); }
+    
+    .card h3 { margin-top: 0; margin-bottom: 5px; }
+    .card .meta { font-size: 12px; color: var(--muted, #94a3b8); margin-bottom: 10px; }
+    .card .desc { font-size: 14px; line-height: 1.4; margin-bottom: 15px; }
+    .fotos-container { display: flex; gap: 5px; flex-wrap: wrap; }
+    .fotos-container img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border, #475569); cursor: pointer; }
+
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px; border-bottom: 1px solid var(--border, #475569); padding-bottom: 10px; }
+    .section-title h2 { margin: 0; font-size: 20px; }
   </style>
 </head>
 <body>
-  <div class="tabs-container">
-    <!-- Cabecera de pestañas -->
-    <div class="tabs-header">
-      <button class="tab-btn active" data-target="tab-turno">Conserje de Turno</button>
-      <button class="tab-btn" data-target="tab-proximamente" disabled style="opacity: 0.5; cursor: not-allowed;">Próximamente...</button>
+
+  <div class="admin-container" id="panel-directiva" style="display: none;">
+    
+    <div class="header">
+      <h1>Panel de Directiva</h1>
+      <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
     </div>
 
-    <!-- Contenido: Pestaña 1 -->
-    <div id="tab-turno" class="tab-content active">
-      <h3 style="margin-top: 0; color: #94a3b8; text-transform: uppercase; font-size: 0.9rem;">Hoy en el edificio</h3>
+    <!-- VISTA DE MONITOREO -->
+    <div id="vista-monitoreo">
       
-      <div id="conserje-hoy" class="conserje-card">
-        <!-- Aquí el JavaScript inyectará los datos -->
-        <p>Cargando información del turno...</p>
+      <!-- SECCIÓN ANUNCIOS -->
+      <div class="section-title">
+        <h2 style="color: var(--warning);">🚨 Anuncios e Incidentes Recientes</h2>
+        <button class="btn-download" onclick="descargarRespaldoCSV()">⬇ Descargar Respaldo (CSV)</button>
       </div>
+      <div id="contenedor-anuncios" class="grid-cards">
+        <p>Cargando anuncios...</p>
+      </div>
+
+      <!-- SECCIÓN TRABAJOS -->
+      <div class="section-title">
+        <h2>Trabajos de Conserjes (Última semana)</h2>
+      </div>
+      <div id="contenedor-trabajos" class="grid-cards">
+        <p>Cargando trabajos...</p>
+      </div>
+
     </div>
 
-    <!-- Contenido: Pestaña 2 -->
-    <div id="tab-proximamente" class="tab-content">
-      <h3>Módulo en construcción</h3>
-      <p>Aquí irán las órdenes y observaciones.</p>
-    </div>
   </div>
 
-  <div style="text-align: center; margin-top: 1rem;">
-    <button id="btn-logout" style="background: #ef4444; width: auto; padding: 0.5rem 1rem;">Cerrar Sesión</button>
+  <!-- Mensaje de carga inicial -->
+  <div class="auth-container" id="loading-screen">
+    <h1>Cargando panel...</h1>
+    <p style="color:#94a3b8;">Verificando credenciales, por favor espera.</p>
   </div>
 
   <script type="module" src="/src/directiva/main.js"></script>
