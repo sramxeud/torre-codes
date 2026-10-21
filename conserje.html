@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Conserje - TORRE CODES</title>
-  <!-- Enlaza aquí tu CSS global si tienes uno, por ejemplo: -->
-  <link rel="stylesheet" href="styles/base.css" />
   <style>
-    /* Estilos básicos rápidos para que se vea bien (luego los pasas a tu CSS) */
-    body { font-family: sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
+    /* Estilos integrados para evitar el error 404 del CSS */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
     .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+    .header h1 { margin: 0; font-size: 24px; color: #007bff; }
+    .btn-logout { background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-logout:hover { background-color: #c82333; }
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; }
     .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; font-weight: bold; color: #666; }
     .tab-btn.active { color: #007bff; border-bottom: 2px solid #007bff; }
@@ -19,21 +21,37 @@
     label { display: block; margin-bottom: 5px; font-weight: bold; }
     input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
     textarea { resize: vertical; height: 100px; }
-    button[type="submit"] { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+    button[type="submit"] { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
     button[type="submit"]:hover { background-color: #0056b3; }
-    .help-text { font-size: 12px; color: #888; }
+    button[type="submit"]:disabled { background-color: #999; cursor: not-allowed; }
+    .help-text { font-size: 12px; color: #888; display: block; margin-top: 5px; }
+    
+    /* Estilos para la lista de trabajos */
+    .lista-trabajos { margin-top: 30px; }
+    .lista-trabajos h2 { font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .card-trabajo { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+    .card-trabajo h3 { margin-top: 0; color: #333; }
+    .card-trabajo .fecha { font-size: 12px; color: #888; margin-bottom: 10px; }
+    .card-trabajo .desc { margin-bottom: 10px; }
+    .fotos-container { display: flex; gap: 10px; flex-wrap: wrap; }
+    .fotos-container img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>Panel de Conserje</h1>
+    <!-- Encabezado con Logout -->
+    <div class="header">
+      <h1>Panel de Conserje</h1>
+      <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
+    </div>
+
     <p>Bienvenido. Aquí puedes registrar tus trabajos y publicar anuncios de emergencia.</p>
 
     <!-- Pestañas -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="openTab('trabajo')">Registrar Trabajo</button>
-      <button class="tab-btn" onclick="openTab('anuncio')">Publicar Anuncio</button>
+      <button class="tab-btn active" onclick="openTab('trabajo', event)">Registrar Trabajo</button>
+      <button class="tab-btn" onclick="openTab('anuncio', event)">Publicar Anuncio</button>
     </div>
 
     <!-- FORMULARIO DE TRABAJO -->
@@ -89,19 +107,27 @@
       </form>
     </div>
 
+    <!-- SECCIÓN DE TRABAJOS RECIENTES -->
+    <div class="lista-trabajos">
+      <h2>Mis Trabajos Recientes</h2>
+      <div id="contenedor-trabajos">
+        <p>Cargando trabajos...</p>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Aquí importamos tu lógica de JS -->
+  <!-- Importar la lógica de JS -->
   <script type="module" src="/src/conserje/main.js"></script>
   
   <script>
-    // Función simple para cambiar de pestaña
-    function openTab(tabName) {
+    // Función simple para cambiar de pestaña (mejorada para recibir el evento)
+    window.openTab = function(tabName, event) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       
       document.getElementById(tabName).classList.add('active');
-      event.currentTarget.classList.add('active');
+      if(event) event.currentTarget.classList.add('active');
     }
   </script>
 </body>

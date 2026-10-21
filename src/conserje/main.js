@@ -1,9 +1,81 @@
-import { supabase } from '../lib/supabase.js'; // Asegúrate de que esta ruta sea correcta
+import { supabase } from '../lib/supabase.js'; 
 
-// --- LÓGICA PARA EL FORMULARIO DE TRABAJOS ---
+// --- 1. CERRAR SESIÓN ---
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    alert("Error al cerrar sesión: " + error.message);
+  } else {
+    window.location.href = '/index.html'; // Redirige al login (ajusta si tu login está en otra ruta)
+  }
+});
+
+// --- 2. CARGAR TRABAJOS RECIENTES AL INICIAR ---
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarTrabajosRecientes();
+});
+
+async function cargarTrabajosRecientes() {
+  const contenedor = document.getElementById('contenedor-trabajos');
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return; // Si no hay sesión, el login debería redirigir
+
+    // Traemos los trabajos del conserje logueado, incluyendo sus imágenes (JOIN)
+    const { data: trabajos, error } = await supabase
+      .from('trabajos')
+      .select(`
+        id, titulo, descripcion, fecha_inicio, estado,
+        imagenes_adjuntas (url_imagen)
+      `)
+      .eq('conserje_id', user.id)
+      .order('fecha_inicio', { ascending: false })
+      .limit(10); // Mostramos solo los últimos 10 para no saturar
+
+    if (error) throw error;
+
+    if (trabajos.length === 0) {
+      contenedor.innerHTML = '<p>No has registrado trabajos aún.</p>';
+      return;
+    }
+
+    // Renderizar las tarjetas
+    contenedor.innerHTML = '';
+    trabajos.forEach(trabajo => {
+      const fecha = new Date(trabajo.fecha_inicio).toLocaleString();
+      
+      // Generar las miniaturas de las fotos
+      let fotosHTML = '';
+      if (trabajo.imagenes_adjuntas && trabajo.imagenes_adjuntas.length > 0) {
+        fotosHTML = '<div class="fotos-container">';
+        trabajo.imagenes_adjuntas.forEach(img => {
+          // Abre la imagen en una pestaña nueva al hacer clic
+          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')" alt="Evidencia">`;
+        });
+        fotosHTML += '</div>';
+      }
+
+      const card = document.createElement('div');
+      card.className = 'card-trabajo';
+      card.innerHTML = `
+        <h3>${trabajo.titulo}</h3>
+        <div class="fecha">📅 ${fecha} | Estado: <b>${trabajo.estado}</b></div>
+        <div class="desc">${trabajo.descripcion}</div>
+        ${fotosHTML}
+      `;
+      contenedor.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error("Error al cargar trabajos:", error);
+    contenedor.innerHTML = '<p>Error al cargar los trabajos.</p>';
+  }
+}
+
+// --- 3. LÓGICA PARA EL FORMULARIO DE TRABAJOS (GUARDAR) ---
 document.getElementById('form-trabajo').addEventListener('submit', async (e) => {
   e.preventDefault();
-  console.log("Iniciando guardado de trabajo...");
   
   const titulo = document.getElementById('trabajo-titulo').value;
   const descripcion = document.getElementById('trabajo-descripcion').value;
@@ -18,21 +90,10 @@ document.getElementById('form-trabajo').addEventListener('submit', async (e) => 
   btn.textContent = "Subiendo...";
 
   try {
-    // 1. Obtener usuario
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError) {
-      console.error("Error de autenticación:", authError);
-      throw new Error("Error al verificar la sesión.");
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("No hay sesión activa.");
 
-    console.log("Usuario logueado:", user); // <-- MIRA ESTO EN LA CONSOLA F12
-
-    if (!user) throw new Error("No hay sesión activa. Vuelve a iniciar sesión.");
-
-    // 2. Guardar el trabajo en la BD
-    console.log("Insertando en tabla trabajos con ID:", user.id);
-    
+    // Insertar trabajo
     const { data: trabajo, error: errorTrabajo } = await supabase
       .from('trabajos')
       .insert([{
@@ -45,23 +106,19 @@ document.getElementById('form-trabajo').addEventListener('submit', async (e) => 
       .select()
       .single();
 
-    if (errorTrabajo) {
-      console.error("Error al insertar trabajo en BD:", errorTrabajo);
-      throw errorTrabajo;
-    }
+    if (errorTrabajo) throw errorTrabajo;
 
-    console.log("Trabajo guardado exitosamente en BD:", trabajo);
-
-    // 3. Subir fotos y guardarlas en imagenes_adjuntas
-    console.log("Iniciando subida de fotos...");
+    // Subir fotos
     await subirFotos(fotos, trabajo.id, null);
-    console.log("Fotos subidas exitosamente.");
     
     alert("Trabajo guardado con éxito");
     e.target.reset();
+    
+    // RECARGAR LA LISTA DE TRABAJOS PARA QUE APAREZCA EL NUEVO
+    await cargarTrabajosRecientes();
 
   } catch (error) {
-    console.error("Error general:", error);
+    console.error(error);
     alert("Error al guardar trabajo: " + (error.message || JSON.stringify(error)));
   } finally {
     btn.disabled = false;
@@ -69,7 +126,7 @@ document.getElementById('form-trabajo').addEventListener('submit', async (e) => 
   }
 });
 
-// --- LÓGICA PARA EL FORMULARIO DE ANUNCIOS ---
+// --- 4. LÓGICA PARA EL FORMULARIO DE ANUNCIOS (GUARDAR) ---
 document.getElementById('form-anuncio').addEventListener('submit', async (e) => {
   e.preventDefault();
   
@@ -90,7 +147,6 @@ document.getElementById('form-anuncio').addEventListener('submit', async (e) => 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No hay sesión activa");
 
-    // 1. Guardar el aviso en la BD
     const { data: aviso, error: errorAviso } = await supabase
       .from('avisos')
       .insert([{
@@ -105,7 +161,6 @@ document.getElementById('form-anuncio').addEventListener('submit', async (e) => 
 
     if (errorAviso) throw errorAviso;
 
-    // 2. Subir fotos y guardarlas en imagenes_adjuntas
     await subirFotos(fotos, null, aviso.id);
 
     alert("Anuncio publicado con éxito");
@@ -120,31 +175,21 @@ document.getElementById('form-anuncio').addEventListener('submit', async (e) => 
   }
 });
 
-// --- FUNCIÓN AUXILIAR PARA SUBIR FOTOS ---
+// --- 5. FUNCIÓN AUXILIAR PARA SUBIR FOTOS ---
 async function subirFotos(archivos, trabajoId, avisoId) {
   for (const archivo of archivos) {
-    // CORRECCIÓN: Quitamos "evidencias/" del inicio del nombre
     const nombreArchivo = `${Date.now()}-${archivo.name}`;
-    console.log("Subiendo archivo:", nombreArchivo);
     
-    // Subir a storage
     const { error: uploadError } = await supabase.storage
       .from('evidencias') 
       .upload(nombreArchivo, archivo);
 
-    if (uploadError) {
-      console.error("Error al subir foto a storage:", uploadError);
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
-    // Obtener URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('evidencias')
       .getPublicUrl(nombreArchivo);
 
-    console.log("URL pública obtenida:", publicUrl);
-
-    // Insertar en la tabla imagenes_adjuntas
     const { error: insertImgError } = await supabase
       .from('imagenes_adjuntas')
       .insert([{
@@ -153,9 +198,6 @@ async function subirFotos(archivos, trabajoId, avisoId) {
         url_imagen: publicUrl
       }]);
 
-    if (insertImgError) {
-      console.error("Error al insertar URL en imagenes_adjuntas:", insertImgError);
-      throw insertImgError;
-    }
+    if (insertImgError) throw insertImgError;
   }
 }
