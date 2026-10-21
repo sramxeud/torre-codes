@@ -14,39 +14,21 @@ async function verificarAcceso() {
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('panel-directiva').style.display = 'block';
   
-  // Calcular quién está de turno y cargar los datos
   calcularConserjeTurno();
   await cargarDatosRecientes();
 }
 
 // --- 2. LÓGICA DEL CONSERJE DE TURNO ---
 function calcularConserjeTurno() {
-  // Definimos los conserjes con sus días (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
   const conserjes = [
-    {
-      nombre: "Milton Diego Yujra Medina",
-      dias: [1, 3, 6], // Lunes, Miércoles, Sábado
-      telefono: "62397180",
-      foto: "/milton.jpg" // Asumiendo que está en la carpeta public
-    },
-    {
-      nombre: "Esteban Alberto Flores",
-      dias: [5, 0], // Viernes, Domingo
-      telefono: "69713524",
-      foto: "/esteban.jpg"
-    },
-    {
-      nombre: "Cesar Augusto Ghinea Guevara",
-      dias: [2, 4], // Martes, Jueves
-      telefono: "76791936",
-      foto: "/cesar.jpg"
-    }
+    { nombre: "Milton Diego Yujra Medina", dias: [1, 3, 6], telefono: "62397180", foto: "/milton.jpg" },
+    { nombre: "Esteban Alberto Flores", dias: [5, 0], telefono: "69713524", foto: "/esteban.jpg" },
+    { nombre: "Cesar Augusto Guinea Guevara", dias: [2, 4], telefono: "76791936", foto: "/cesar.jpg" }
   ];
 
-  const hoy = new Date().getDay(); // 0 al 6
+  const hoy = new Date().getDay();
   let conserjeHoy = null;
 
-  // Buscamos quién tiene el día de hoy en su arreglo
   for (const c of conserjes) {
     if (c.dias.includes(hoy)) {
       conserjeHoy = c;
@@ -67,7 +49,6 @@ function calcularConserjeTurno() {
     
     tarjeta.style.display = 'flex';
   } else {
-    // Por si acaso hay un día sin asignar
     tarjeta.style.display = 'none'; 
   }
 }
@@ -118,10 +99,7 @@ function renderizarDatos() {
   const contAnuncios = document.getElementById('contenedor-anuncios');
   const contTrabajos = document.getElementById('contenedor-trabajos');
 
-  if (!contAnuncios || !contTrabajos) {
-    console.error("No se encontraron los contenedores en el HTML.");
-    return; 
-  }
+  if (!contAnuncios || !contTrabajos) return;
 
   // Renderizar Anuncios
   if (datosGlobales.avisos.length === 0) {
@@ -133,12 +111,23 @@ function renderizarDatos() {
       const importanteClass = aviso.es_importante ? 'importante' : '';
       const badge = aviso.es_importante ? '🔴 <b>URGENTE</b> - ' : '';
       
+      // AQUI ESTA LA MAGIA: Renderizar fotos de anuncios
+      let fotosHTML = '';
+      if (aviso.imagenes_adjuntas && aviso.imagenes_adjuntas.length > 0) {
+        fotosHTML = '<div class="fotos-container">';
+        aviso.imagenes_adjuntas.forEach(img => {
+          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')" alt="Evidencia">`;
+        });
+        fotosHTML += '</div>';
+      }
+
       const card = document.createElement('div');
       card.className = `card card-anuncio ${importanteClass}`;
       card.innerHTML = `
         <h3>${aviso.titulo}</h3>
         <div class="meta">${badge} 📅 ${fecha}</div>
         <div class="desc">${aviso.mensaje}</div>
+        ${fotosHTML} <!-- Se insertan las fotos aquí -->
       `;
       contAnuncios.appendChild(card);
     });
@@ -152,12 +141,23 @@ function renderizarDatos() {
     datosGlobales.trabajos.forEach(trabajo => {
       const fecha = new Date(trabajo.fecha_inicio).toLocaleString();
       
+      // AQUI ESTA LA MAGIA: Renderizar fotos de trabajos
+      let fotosHTML = '';
+      if (trabajo.imagenes_adjuntas && trabajo.imagenes_adjuntas.length > 0) {
+        fotosHTML = '<div class="fotos-container">';
+        trabajo.imagenes_adjuntas.forEach(img => {
+          fotosHTML += `<img src="${img.url_imagen}" onclick="window.open('${img.url_imagen}', '_blank')" alt="Evidencia">`;
+        });
+        fotosHTML += '</div>';
+      }
+
       const card = document.createElement('div');
       card.className = 'card card-trabajo';
       card.innerHTML = `
         <h3>${trabajo.titulo}</h3>
         <div class="meta">📅 ${fecha} | Estado: <b>${trabajo.estado}</b></div>
         <div class="desc">${trabajo.descripcion}</div>
+        ${fotosHTML} <!-- Se insertan las fotos aquí -->
       `;
       contTrabajos.appendChild(card);
     });
