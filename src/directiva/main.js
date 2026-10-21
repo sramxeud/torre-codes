@@ -188,7 +188,7 @@ window.descargarRespaldoCSV = function() {
     const importante = a.es_importante ? "SI" : "NO";
     const titulo = a.titulo.replace(/,/g, '').replace(/"/g, '""');
     const desc = a.mensaje ? a.mensaje.replace(/,/g, '').replace(/\n/g, ' ').replace(/"/g, '""') : "";
-    csvContent += `AVISO (Importante: ${importante}),"${titulo}","${desc}","${a.created_at}","${fotos}"\n`;
+    csvContent += `AVISO (Importante: ${importante}),"${titulo}","${desc}"\n`;
   });
 
   // MÉTODO ROBUSTO: Crear un Blob y descargarlo
