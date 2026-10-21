@@ -1,200 +1,111 @@
-import { supabase } from '../lib/supabase.js';
-
-let datosGlobales = { trabajos: [], avisos: [] };
-
-// --- 1. VERIFICACIÓN DE SESIÓN ---
-async function verificarAcceso() {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    window.location.href = '/index.html';
-    return;
-  }
-
-  document.getElementById('loading-screen').style.display = 'none';
-  document.getElementById('panel-directiva').style.display = 'block';
-  
-  // Calcular quién está de turno y cargar los datos
-  calcularConserjeTurno();
-  await cargarDatosRecientes();
-}
-
-// --- 2. LÓGICA DEL CONSERJE DE TURNO ---
-function calcularConserjeTurno() {
-  // Definimos los conserjes con sus días (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
-  const conserjes = [
-    {
-      nombre: "Milton Diego Yujra Medina",
-      dias: [1, 3, 6], // Lunes, Miércoles, Sábado
-      telefono: "62397180",
-      foto: "/milton.jpg" // Asumiendo que está en la carpeta public
-    },
-    {
-      nombre: "Esteban Alberto Flores",
-      dias: [5, 0], // Viernes, Domingo
-      telefono: "69713524",
-      foto: "/esteban.jpg"
-    },
-    {
-      nombre: "Cesar Augusto Guinea Guevara",
-      dias: [2, 4], // Martes, Jueves
-      telefono: "76791936",
-      foto: "/cesar.jpg"
-    }
-  ];
-
-  const hoy = new Date().getDay(); // 0 al 6
-  let conserjeHoy = null;
-
-  // Buscamos quién tiene el día de hoy en su arreglo
-  for (const c of conserjes) {
-    if (c.dias.includes(hoy)) {
-      conserjeHoy = c;
-      break;
-    }
-  }
-
-  const tarjeta = document.getElementById('tarjeta-turno');
-
-  if (conserjeHoy) {
-    document.getElementById('turno-foto').src = conserjeHoy.foto;
-    document.getElementById('turno-nombre').innerText = conserjeHoy.nombre;
-    document.getElementById('turno-dias').innerText = "Turno activo hasta las 8:15 AM del día siguiente";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Directiva · Panel de Control</title>
+  <link rel="stylesheet" href="/styles/base.css" />
+  <style>
+    body { background: var(--bg, #0f172a); color: var(--text, #f1f5f9); font-family: system-ui, sans-serif; padding: 20px; margin: 0; }
+    .admin-container { max-width: 1100px; margin: 0 auto; }
     
-    const telLink = document.getElementById('turno-telefono');
-    telLink.href = `tel:${conserjeHoy.telefono}`;
-    telLink.innerHTML = `📞 Llamar al ${conserjeHoy.telefono}`;
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--surface, #1e293b); padding: 20px; border-radius: 8px; border-bottom: 3px solid var(--success, #22c55e); }
+    .header h1 { margin: 0; }
+    .btn-logout { background: var(--danger, #ef4444); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
     
-    tarjeta.style.display = 'flex';
-  } else {
-    // Por si acaso hay un día sin asignar
-    tarjeta.style.display = 'none'; 
-  }
-}
+    /* --- ESTILOS DE LA TARJETA DE TURNO --- */
+    .turno-container {
+      background: linear-gradient(135deg, var(--surface), var(--surface-2));
+      border: 1px solid var(--border, #475569);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .turno-foto {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--success, #22c55e);
+      background-color: #333;
+    }
+    .turno-info h2 { margin: 0 0 5px 0; font-size: 22px; color: var(--success, #22c55e); text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+    .turno-info h3 { margin: 0 0 5px 0; font-size: 20px; }
+    .turno-info p { margin: 0; color: var(--muted, #94a3b8); font-size: 14px; }
+    .turno-info .telefono { margin-top: 10px; display: inline-block; background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; }
 
-// --- 3. CERRAR SESIÓN ---
-const btnLogout = document.getElementById('btn-logout');
-if (btnLogout) {
-  btnLogout.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/index.html';
-  });
-}
+    .btn-download { background: var(--success, #22c55e); color: #000; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 15px; }
+    .btn-download:hover { opacity: 0.9; }
 
-// --- 4. CARGAR TRABAJOS Y ANUNCIOS ---
-async function cargarDatosRecientes() {
-  const haceUnaSemana = new Date();
-  haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: var(--surface-2, #334155); border: 1px solid var(--border, #475569); border-radius: 8px; padding: 15px; position: relative; }
+    .card-trabajo { border-left: 4px solid var(--primary, #3b82f6); }
+    .card-anuncio { border-left: 4px solid var(--warning, #f59e0b); }
+    .card-anuncio.importante { border-left: 4px solid var(--danger, #ef4444); background: rgba(239, 68, 68, 0.05); }
+    
+    .card h3 { margin-top: 0; margin-bottom: 5px; }
+    .card .meta { font-size: 12px; color: var(--muted, #94a3b8); margin-bottom: 10px; }
+    .card .desc { font-size: 14px; line-height: 1.4; margin-bottom: 15px; }
+    .fotos-container { display: flex; gap: 5px; flex-wrap: wrap; }
+    .fotos-container img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border, #475569); cursor: pointer; }
 
-  try {
-    const { data: trabajos, error: errTrabajos } = await supabase
-      .from('trabajos')
-      .select(`*, imagenes_adjuntas (url_imagen)`)
-      .gte('fecha_inicio', haceUnaSemana.toISOString())
-      .order('fecha_inicio', { ascending: false });
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 15px; border-bottom: 1px solid var(--border, #475569); padding-bottom: 10px; }
+    .section-title h2 { margin: 0; font-size: 20px; }
+  </style>
+</head>
+<body>
 
-    if (errTrabajos) throw errTrabajos;
-    datosGlobales.trabajos = trabajos || [];
+  <div class="admin-container" id="panel-directiva" style="display: none;">
+    
+    <div class="header">
+      <h1>Panel de Directiva</h1>
+      <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
+    </div>
 
-    const { data: avisos, error: errAvisos } = await supabase
-      .from('avisos')
-      .select(`*, imagenes_adjuntas (url_imagen)`)
-      .or(`created_at.gte.${haceUnaSemana.toISOString()},es_importante.eq.true`)
-      .order('created_at', { ascending: false });
+    <!-- TARJETA DEL CONSERJE DE TURNO -->
+    <div class="turno-container" id="tarjeta-turno" style="display: none;">
+      <img id="turno-foto" class="turno-foto" src="" alt="Foto Conserje">
+      <div class="turno-info">
+        <h2>Conserje de Turno Hoy</h2>
+        <h3 id="turno-nombre">Cargando...</h3>
+        <p id="turno-dias"></p>
+        <a id="turno-telefono" href="" class="telefono" target="_blank">📞 Llamar</a>
+      </div>
+    </div>
 
-    if (errAvisos) throw errAvisos;
-    datosGlobales.avisos = avisos || [];
-
-    renderizarDatos();
-
-  } catch (error) {
-    console.error("Error al cargar datos:", error);
-    alert("Error al cargar la información de la base de datos.");
-  }
-}
-
-// --- 5. RENDERIZAR EN PANTALLA ---
-function renderizarDatos() {
-  const contAnuncios = document.getElementById('contenedor-anuncios');
-  const contTrabajos = document.getElementById('contenedor-trabajos');
-
-  if (!contAnuncios || !contTrabajos) {
-    console.error("No se encontraron los contenedores en el HTML.");
-    return; 
-  }
-
-  // Renderizar Anuncios
-  if (datosGlobales.avisos.length === 0) {
-    contAnuncios.innerHTML = '<p>No hay anuncios recientes.</p>';
-  } else {
-    contAnuncios.innerHTML = '';
-    datosGlobales.avisos.forEach(aviso => {
-      const fecha = new Date(aviso.created_at).toLocaleString();
-      const importanteClass = aviso.es_importante ? 'importante' : '';
-      const badge = aviso.es_importante ? '🔴 <b>URGENTE</b> - ' : '';
+    <div id="vista-monitoreo">
       
-      const card = document.createElement('div');
-      card.className = `card card-anuncio ${importanteClass}`;
-      card.innerHTML = `
-        <h3>${aviso.titulo}</h3>
-        <div class="meta">${badge} 📅 ${fecha}</div>
-        <div class="desc">${aviso.mensaje}</div>
-      `;
-      contAnuncios.appendChild(card);
-    });
-  }
+      <!-- SECCIÓN ANUNCIOS -->
+      <div class="section-title">
+        <h2 style="color: var(--warning);">🚨 Anuncios e Incidentes Recientes</h2>
+        <button class="btn-download" onclick="descargarRespaldoCSV()">⬇ Descargar Respaldo (CSV)</button>
+      </div>
+      <div id="contenedor-anuncios" class="grid-cards">
+        <p>Cargando anuncios...</p>
+      </div>
 
-  // Renderizar Trabajos
-  if (datosGlobales.trabajos.length === 0) {
-    contTrabajos.innerHTML = '<p>No hay trabajos recientes en los últimos 7 días.</p>';
-  } else {
-    contTrabajos.innerHTML = '';
-    datosGlobales.trabajos.forEach(trabajo => {
-      const fecha = new Date(trabajo.fecha_inicio).toLocaleString();
-      
-      const card = document.createElement('div');
-      card.className = 'card card-trabajo';
-      card.innerHTML = `
-        <h3>${trabajo.titulo}</h3>
-        <div class="meta">📅 ${fecha} | Estado: <b>${trabajo.estado}</b></div>
-        <div class="desc">${trabajo.descripcion}</div>
-      `;
-      contTrabajos.appendChild(card);
-    });
-  }
-}
+      <!-- SECCIÓN TRABAJOS -->
+      <div class="section-title">
+        <h2>Trabajos de Conserjes (Última semana)</h2>
+      </div>
+      <div id="contenedor-trabajos" class="grid-cards">
+        <p>Cargando trabajos...</p>
+      </div>
 
-// --- 6. DESCARGAR RESPALDO CSV ---
-window.descargarRespaldoCSV = function() {
-  if (datosGlobales.trabajos.length === 0 && datosGlobales.avisos.length === 0) {
-    return alert("No hay datos para descargar.");
-  }
+    </div>
 
-  let csvContent = "TIPO,TITULO,DESCRIPCION/MENSAJE,FECHA,FOTOS\n";
-  
-  datosGlobales.trabajos.forEach(t => {
-    const fotos = t.imagenes_adjuntas ? t.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
-    const titulo = t.titulo.replace(/,/g, '').replace(/"/g, '""');
-    const desc = t.descripcion ? t.descripcion.replace(/,/g, '').replace(/\n/g, ' ').replace(/"/g, '""') : "";
-    csvContent += `TRABAJO,"${titulo}","${desc}","${t.fecha_inicio}","${fotos}"\n`;
-  });
+  </div>
 
-  datosGlobales.avisos.forEach(a => {
-    const fotos = a.imagenes_adjuntas ? a.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
-    const importante = a.es_importante ? "SI" : "NO";
-    const titulo = a.titulo.replace(/,/g, '').replace(/"/g, '""');
-    const desc = a.mensaje ? a.mensaje.replace(/,/g, '').replace(/\n/g, ' ').replace(/"/g, '""') : "";
-    csvContent += `AVISO (Importante: ${importante}),"${titulo}","${desc}","${a.created_at}","${fotos}"\n`;
-  });
+  <!-- Mensaje de carga inicial -->
+  <div class="auth-container" id="loading-screen">
+    <h1>Cargando panel...</h1>
+    <p style="color:#94a3b8;">Verificando credenciales, por favor espera.</p>
+  </div>
 
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `respaldo_directiva_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-// --- INICIO ---
-verificarAcceso();
+  <script type="module" src="/src/directiva/main.js"></script>
+</body>
+</html>

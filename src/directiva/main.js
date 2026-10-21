@@ -14,16 +14,74 @@ async function verificarAcceso() {
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('panel-directiva').style.display = 'block';
   
+  // Calcular quién está de turno y cargar los datos
+  calcularConserjeTurno();
   await cargarDatosRecientes();
 }
 
-// --- 2. CERRAR SESIÓN ---
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await supabase.auth.signOut();
-  window.location.href = '/index.html';
-});
+// --- 2. LÓGICA DEL CONSERJE DE TURNO ---
+function calcularConserjeTurno() {
+  // Definimos los conserjes con sus días (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
+  const conserjes = [
+    {
+      nombre: "Milton Diego Yujra Medina",
+      dias: [1, 3, 6], // Lunes, Miércoles, Sábado
+      telefono: "62397180",
+      foto: "/milton.jpg" // Asumiendo que está en la carpeta public
+    },
+    {
+      nombre: "Esteban Alberto Flores",
+      dias: [5, 0], // Viernes, Domingo
+      telefono: "69713524",
+      foto: "/esteban.jpg"
+    },
+    {
+      nombre: "Cesar Augusto Guinea Guevara",
+      dias: [2, 4], // Martes, Jueves
+      telefono: "76791936",
+      foto: "/cesar.jpg"
+    }
+  ];
 
-// --- 3. CARGAR TRABAJOS Y ANUNCIOS ---
+  const hoy = new Date().getDay(); // 0 al 6
+  let conserjeHoy = null;
+
+  // Buscamos quién tiene el día de hoy en su arreglo
+  for (const c of conserjes) {
+    if (c.dias.includes(hoy)) {
+      conserjeHoy = c;
+      break;
+    }
+  }
+
+  const tarjeta = document.getElementById('tarjeta-turno');
+
+  if (conserjeHoy) {
+    document.getElementById('turno-foto').src = conserjeHoy.foto;
+    document.getElementById('turno-nombre').innerText = conserjeHoy.nombre;
+    document.getElementById('turno-dias').innerText = "Turno activo hasta las 8:15 AM del día siguiente";
+    
+    const telLink = document.getElementById('turno-telefono');
+    telLink.href = `tel:${conserjeHoy.telefono}`;
+    telLink.innerHTML = `📞 Llamar al ${conserjeHoy.telefono}`;
+    
+    tarjeta.style.display = 'flex';
+  } else {
+    // Por si acaso hay un día sin asignar
+    tarjeta.style.display = 'none'; 
+  }
+}
+
+// --- 3. CERRAR SESIÓN ---
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogout) {
+  btnLogout.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/index.html';
+  });
+}
+
+// --- 4. CARGAR TRABAJOS Y ANUNCIOS ---
 async function cargarDatosRecientes() {
   const haceUnaSemana = new Date();
   haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
@@ -55,10 +113,15 @@ async function cargarDatosRecientes() {
   }
 }
 
-// --- 4. RENDERIZAR EN PANTALLA ---
+// --- 5. RENDERIZAR EN PANTALLA ---
 function renderizarDatos() {
   const contAnuncios = document.getElementById('contenedor-anuncios');
   const contTrabajos = document.getElementById('contenedor-trabajos');
+
+  if (!contAnuncios || !contTrabajos) {
+    console.error("No se encontraron los contenedores en el HTML.");
+    return; 
+  }
 
   // Renderizar Anuncios
   if (datosGlobales.avisos.length === 0) {
@@ -101,7 +164,7 @@ function renderizarDatos() {
   }
 }
 
-// --- 5. DESCARGAR RESPALDO CSV ---
+// --- 6. DESCARGAR RESPALDO CSV ---
 window.descargarRespaldoCSV = function() {
   if (datosGlobales.trabajos.length === 0 && datosGlobales.avisos.length === 0) {
     return alert("No hay datos para descargar.");
