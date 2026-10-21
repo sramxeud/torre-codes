@@ -170,8 +170,11 @@ window.descargarRespaldoCSV = function() {
     return alert("No hay datos para descargar.");
   }
 
-  let csvContent = "TIPO,TITULO,DESCRIPCION/MENSAJE,FECHA,FOTOS\n";
+  // Usamos BOM (\uFEFF) para que Excel reconozca los acentos y eñes correctamente
+  let csvContent = "\uFEFF"; 
+  csvContent += "TIPO,TITULO,DESCRIPCION,FECHA,FOTOS\n";
   
+  // Agregar Trabajos
   datosGlobales.trabajos.forEach(t => {
     const fotos = t.imagenes_adjuntas ? t.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
     const titulo = t.titulo.replace(/,/g, '').replace(/"/g, '""');
@@ -179,6 +182,7 @@ window.descargarRespaldoCSV = function() {
     csvContent += `TRABAJO,"${titulo}","${desc}","${t.fecha_inicio}","${fotos}"\n`;
   });
 
+  // Agregar Avisos
   datosGlobales.avisos.forEach(a => {
     const fotos = a.imagenes_adjuntas ? a.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
     const importante = a.es_importante ? "SI" : "NO";
@@ -187,14 +191,23 @@ window.descargarRespaldoCSV = function() {
     csvContent += `AVISO (Importante: ${importante}),"${titulo}","${desc}","${a.created_at}","${fotos}"\n`;
   });
 
-  const encodedUri = encodeURI(csvContent);
+  // MÉTODO ROBUSTO: Crear un Blob y descargarlo
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
+  
+  link.href = url;
   link.setAttribute("download", `respaldo_directiva_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.display = 'none';
+  
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  
+  // Liberar la memoria
+  URL.revokeObjectURL(url);
 }
+
 
 // --- INICIO ---
 verificarAcceso();
