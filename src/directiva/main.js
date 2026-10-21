@@ -172,11 +172,11 @@ window.descargarRespaldoCSV = function() {
 
   // Usamos BOM (\uFEFF) para que Excel reconozca los acentos y eñes correctamente
   let csvContent = "\uFEFF"; 
-  csvContent += "TIPO,TITULO,DESCRIPCION,FECHA,FOTOS\n";
+  csvContent += "TIPO,TITULO,DESCRIPCION,FECHA\n";
   
   // Agregar Trabajos
   datosGlobales.trabajos.forEach(t => {
-    const fotos = t.imagenes_adjuntas ? t.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
+    //const fotos = t.imagenes_adjuntas ? t.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
     const titulo = t.titulo.replace(/,/g, '').replace(/"/g, '""');
     const desc = t.descripcion ? t.descripcion.replace(/,/g, '').replace(/\n/g, ' ').replace(/"/g, '""') : "";
     csvContent += `TRABAJO,"${titulo}","${desc}","${t.fecha_inicio}"\n`;
@@ -184,7 +184,7 @@ window.descargarRespaldoCSV = function() {
 
   // Agregar Avisos
   datosGlobales.avisos.forEach(a => {
-    const fotos = a.imagenes_adjuntas ? a.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
+    //const fotos = a.imagenes_adjuntas ? a.imagenes_adjuntas.map(img => img.url_imagen).join(" | ") : "";
     const importante = a.es_importante ? "SI" : "NO";
     const titulo = a.titulo.replace(/,/g, '').replace(/"/g, '""');
     const desc = a.mensaje ? a.mensaje.replace(/,/g, '').replace(/\n/g, ' ').replace(/"/g, '""') : "";
