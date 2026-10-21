@@ -36,7 +36,7 @@ function calcularConserjeTurno() {
       foto: "/esteban.jpg"
     },
     {
-      nombre: "Cesar Augusto Guinea Guevara",
+      nombre: "Cesar Augusto Ghinea Guevara",
       dias: [2, 4], // Martes, Jueves
       telefono: "76791936",
       foto: "/cesar.jpg"
