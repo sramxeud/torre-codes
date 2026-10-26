@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Copropietario - TORRE CODES</title>
+  <link rel="stylesheet" href="/styles/base.css" />
+  <style>
+    body { background: var(--bg, #0f172a); color: var(--text, #f1f5f9); font-family: system-ui, sans-serif; padding: 20px; margin: 0; }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; background: var(--surface, #1e293b); padding: 20px; border-radius: 8px; margin-bottom: 20px; border-bottom: 3px solid var(--primary, #3b82f6); }
+    .btn-logout { background: var(--danger, #ef4444); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+    /* Alerta de suspensión */
+    .alerta-suspension { background: var(--danger, #ef4444); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; }
+    .alerta-suspension h2 { margin: 0 0 10px 0; }
+
+    /* Tarjetas y Secciones */
+    .card { background: var(--surface-2, #334155); border: 1px solid var(--border, #475569); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .card h2 { margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: var(--primary); }
+    
+    /* Formularios */
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; box-sizing: border-box; }
+    button[type="submit"], .btn-action { background: var(--success, #22c55e); color: #000; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+    button[type="submit"]:hover { opacity: 0.9; }
+    
+    /* Tablas */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); color: var(--muted); }
+    .pagado { color: var(--success); font-weight: bold; }
+    .deuda { color: var(--danger); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="panel-copropietario" style="display: none;">
+    
+    <div class="header">
+      <div>
+        <h1 style="margin: 0; font-size: 22px;">Portal del Copropietario</h1>
+        <span id="user-email" style="color: var(--muted); font-size: 14px;"></span>
+      </div>
+      <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
+    </div>
+
+    <!-- Alerta de Suspensión -->
+    <div id="alerta-suspension" class="alerta-suspension">
+      <h2>⚠️ CUENTA SUSPENDIDA</h2>
+      <p id="motivo-suspension-texto"></p>
+    </div>
+
+    <!-- SECCIÓN 1: MIS BIENES -->
+    <div class="card">
+      <h2>1. Mis Oficinas, Parqueos y Bauleras</h2>
+      <div id="lista-bienes">
+        <p>Cargando tus bienes...</p>
+      </div>
+
+      <!-- Formulario para agregar nuevo bien (oculto si ya tiene) -->
+      <div id="seccion-agregar-bien" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border);">
+        <h3>Registrar un nuevo bien</h3>
+        <form id="form-bien">
+          <div class="form-group">
+            <label>Tipo de Bien</label>
+            <select id="bien-tipo" required>
+              <option value="oficina">Oficina</option>
+              <option value="parqueo">Parqueo</option>
+              <option value="baulera">Baulera</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Identificador (Ej: 9A, 9AB, 2C, P-12)</label>
+            <input type="text" id="bien-identificador" required placeholder="Ej: 9A" />
+          </div>
+          <div class="form-group">
+            <label>Superficie en m² (El sistema calculará el monto a Bs. 4.49/m²)</label>
+            <input type="number" step="0.01" id="bien-superficie" required />
+          </div>
+          <div class="form-group">
+            <label>Foto del documento que respalde la propiedad</label>
+            <input type="file" id="bien-foto" accept="image/*,application/pdf" required />
+          </div>
+          <button type="submit">Enviar a Validación</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: SUBIR PAGO (Solo si está aprobado y no suspendido) -->
+    <div class="card" id="seccion-pagos" style="display: none;">
+      <h2>2. Subir Comprobante de Pago</h2>
+      <form id="form-pago">
+        <div class="form-group">
+          <label>Selecciona el bien a pagar</label>
+          <select id="pago-bien-id" required>
+            <option value="">Cargando bienes...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Meses a pagar (Solo últimos 3 meses)</label>
+          <select id="pago-meses" multiple required style="height: 100px;">
+            <!-- Se llena por JS -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nombre del depositante</label>
+          <input type="text" id="pago-depositante" required />
+        </div>
+        <div class="form-group">
+          <label>Monto Total Depositado (Bs.)</label>
+          <input type="number" step="0.01" id="pago-monto" required />
+        </div>
+        <div class="form-group">
+          <label>Foto o documento del comprobante</label>
+          <input type="file" id="pago-foto" accept="image/*,application/pdf" required />
+        </div>
+        <button type="submit">Enviar Comprobante</button>
+      </form>
+    </div>
+
+    <!-- SECCIÓN 3: HISTORIAL -->
+    <div class="card">
+      <h2>3. Historial de Pagos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Bien</th>
+            <th>Año</th>
+            <th>Mes</th>
+            <th>Estado</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-historial">
+          <tr><td colspan="5">Cargando historial...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="auth-container" id="loading-screen">
+    <h1>Cargando portal...</h1>
+    <p style="color:#94a3b8;">Verificando credenciales.</p>
+  </div>
+
+  <script type="module" src="/src/copropietario/main.js"></script>
+</body>
+</html>
