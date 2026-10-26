@@ -16,20 +16,19 @@ async function init() {
   document.getElementById('panel-copropietario').style.display = 'block';
   document.getElementById('user-email').innerText = user.email;
 
-  // Obtener datos del perfil (para ver si está suspendido o es master)
   const { data: perfil } = await supabase.from('usuarios').select('*').eq('id', user.id).single();
   usuarioActual = { ...user, ...perfil };
 
-  // Verificar suspensión
   if (usuarioActual.estado_cuenta === 'suspendido') {
     document.getElementById('alerta-suspension').style.display = 'block';
     document.getElementById('motivo-suspension-texto').innerText = usuarioActual.motivo_suspension || 'Contacte al administrador.';
-    document.getElementById('seccion-pagos').style.display = 'none'; // Bloquear pagos
+    document.getElementById('seccion-pagos').style.display = 'none'; 
   }
 
   await cargarBienes();
   await cargarHistorial();
   generarMesesParaPago();
+  configurarBotonSeleccionarTodo();
 }
 
 // --- 2. CERRAR SESIÓN ---
@@ -45,11 +44,7 @@ async function cargarBienes() {
   
   try {
     let query = supabase.from('bienes').select('*');
-    
-    // Si NO es master, solo ve sus bienes. Si es master, ve TODOS.
-    if (!usuarioActual.es_master) {
-      query = query.eq('usuario_id', usuarioActual.id);
-    }
+    if (!usuarioActual.es_master) query = query.eq('usuario_id', usuarioActual.id);
     
     const { data: bienes, error } = await query;
     if (error) throw error;
@@ -66,7 +61,6 @@ async function cargarBienes() {
     let hayAprobados = false;
 
     misBienes.forEach(bien => {
-      // Renderizar en la lista
       let estadoBadge = '';
       if (bien.estado_validacion === 'aprobado') { estadoBadge = '<span style="color:var(--success)">✅ Aprobado</span>'; hayAprobados = true; }
       else if (bien.estado_validacion === 'rechazado') { estadoBadge = '<span style="color:var(--danger)">❌ Rechazado</span>'; }
@@ -84,20 +78,16 @@ async function cargarBienes() {
         </div>
       `;
 
-      // Llenar el select de pagos (solo los aprobados)
       if (bien.estado_validacion === 'aprobado') {
         selectPago.innerHTML += `<option value="${bien.id}">${bien.tipo} ${bien.identificador} (Bs. ${montoFinal})</option>`;
       }
     });
 
-    // Mostrar el formulario de pagos si tiene al menos un bien aprobado y no está suspendido
     if (hayAprobados && usuarioActual.estado_cuenta !== 'suspendido') {
       document.getElementById('seccion-pagos').style.display = 'block';
     }
 
-  } catch (error) {
-    console.error("Error al cargar bienes:", error);
-  }
+  } catch (error) { console.error("Error al cargar bienes:", error); }
 }
 
 // --- 4. REGISTRAR NUEVO BIEN ---
@@ -112,14 +102,12 @@ document.getElementById('form-bien').addEventListener('submit', async (e) => {
   const foto = document.getElementById('bien-foto').files[0];
 
   try {
-    // 1. Subir foto
     const nombreArchivo = `docs_${Date.now()}-${foto.name}`;
     const { error: uploadError } = await supabase.storage.from('evidencias').upload(nombreArchivo, foto);
     if (uploadError) throw uploadError;
     
     const { data: { publicUrl } } = supabase.storage.from('evidencias').getPublicUrl(nombreArchivo);
 
-    // 2. Insertar Bien
     const { error: insertError } = await supabase.from('bienes').insert([{
       usuario_id: usuarioActual.id,
       tipo: tipo,
@@ -133,7 +121,7 @@ document.getElementById('form-bien').addEventListener('submit', async (e) => {
 
     alert("Bien registrado. Espera la aprobación del administrador.");
     e.target.reset();
-    await cargarBienes(); // Recargar la lista
+    await cargarBienes(); 
 
   } catch (error) {
     console.error(error);
@@ -150,8 +138,6 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.innerText = "Enviando...";
 
   const bienId = document.getElementById('pago-bien-id').value;
-  
-  // CAPTURAR MESES SELECCIONADOS DESDE LOS CHECKBOXES
   const checkboxesSeleccionados = document.querySelectorAll('.mes-checkbox:checked');
   const mesesPagados = Array.from(checkboxesSeleccionados).map(cb => cb.value);
   
@@ -160,27 +146,25 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
   const foto = document.getElementById('pago-foto').files[0];
 
   if (mesesPagados.length === 0) {
-    alert("Selecciona al menos un mes haciendo clic en las etiquetas."); 
+    alert("Selecciona al menos un mes."); 
     btn.disabled = false; btn.innerText = "Enviar Comprobante"; 
     return;
   }
 
   try {
-    // 1. Subir foto
     const nombreArchivo = `pagos_${Date.now()}-${foto.name}`;
     const { error: uploadError } = await supabase.storage.from('evidencias').upload(nombreArchivo, foto);
     if (uploadError) throw uploadError;
     
     const { data: { publicUrl } } = supabase.storage.from('evidencias').getPublicUrl(nombreArchivo);
 
-    // 2. Insertar Pago
     const { error: insertError } = await supabase.from('pagos').insert([{
-      usuario_id: usuarioActual.id, // El que sube el pago (aunque sea master)
+      usuario_id: usuarioActual.id, 
       bien_id: bienId,
       fecha_deposito: new Date().toISOString().split('T')[0],
       nombre_depositante: depositante,
       monto_total: monto,
-      meses_pagados: mesesPagados, // Se guarda como JSON array
+      meses_pagados: mesesPagados, 
       foto_comprobante_url: publicUrl,
       estado: 'pendiente'
     }]);
@@ -190,8 +174,9 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
     alert("Comprobante enviado. Espera la validación del administrador.");
     e.target.reset();
     
-    // Desmarcar los checkboxes visualmente
+    // Desmarcar y actualizar contador
     checkboxesSeleccionados.forEach(cb => cb.checked = false);
+    actualizarContadorMeses();
 
   } catch (error) {
     console.error(error);
@@ -210,7 +195,6 @@ function generarMesesParaPago() {
   const anioActual = new Date().getFullYear();
   const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-  // Generamos los 12 meses del año actual
   nombresMeses.forEach((mes, index) => {
     const mesNumero = String(index + 1).padStart(2, '0');
     const valor = `${anioActual}-${mesNumero}`;
@@ -218,14 +202,34 @@ function generarMesesParaPago() {
     const label = document.createElement('label');
     label.className = 'mes-label';
     label.innerHTML = `
-      <input type="checkbox" class="mes-checkbox" value="${valor}">
+      <input type="checkbox" class="mes-checkbox" value="${valor}" onchange="actualizarContadorMeses()">
       ${mes} ${anioActual}
     `;
     container.appendChild(label);
   });
 }
 
-// --- 7. CARGAR HISTORIAL ---
+// --- 7. LÓGICA DEL CONTADOR Y SELECCIONAR TODO ---
+window.actualizarContadorMeses = function() {
+  const total = document.querySelectorAll('.mes-checkbox:checked').length;
+  document.getElementById('contador-meses').innerText = `${total} mes(es) seleccionado(s)`;
+  
+  const btn = document.getElementById('btn-toggle-meses');
+  const todos = document.querySelectorAll('.mes-checkbox').length;
+  btn.innerText = (total === todos) ? "Desmarcar Todo" : "Seleccionar Todo";
+}
+
+function configurarBotonSeleccionarTodo() {
+  document.getElementById('btn-toggle-meses').addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('.mes-checkbox');
+    const todosSeleccionados = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => cb.checked = !todosSeleccionados);
+    actualizarContadorMeses();
+  });
+}
+
+// --- 8. CARGAR HISTORIAL ---
 async function cargarHistorial() {
   const tbody = document.getElementById('tabla-historial');
   
@@ -269,9 +273,7 @@ async function cargarHistorial() {
       `;
     });
 
-  } catch (error) {
-    console.error("Error al cargar historial:", error);
-  }
+  } catch (error) { console.error("Error al cargar historial:", error); }
 }
 
 // --- INICIO ---

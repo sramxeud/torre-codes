@@ -29,6 +29,11 @@
     button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* ESTILOS PARA LOS BOTONES DE MESES */
+    .meses-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .btn-select-all { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-select-all:hover { background: var(--border); }
+    .contador-meses { font-size: 12px; color: var(--muted); }
+
     .mes-label {
       display: flex; align-items: center; gap: 5px; background: var(--surface);
       padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
@@ -59,7 +64,6 @@
       <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
     </div>
 
-    <!-- Alerta de Suspensión -->
     <div id="alerta-suspension" class="alerta-suspension">
       <h2>⚠️ CUENTA SUSPENDIDA</h2>
       <p id="motivo-suspension-texto"></p>
@@ -72,7 +76,6 @@
         <p>Cargando tus bienes...</p>
       </div>
 
-      <!-- Formulario para agregar nuevo bien -->
       <div id="seccion-agregar-bien" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border);">
         <h3>Registrar un nuevo bien</h3>
         <form id="form-bien">
@@ -101,7 +104,7 @@
       </div>
     </div>
 
-    <!-- SECCIÓN 2: SUBIR PAGO (Solo si está aprobado y no suspendido) -->
+    <!-- SECCIÓN 2: SUBIR PAGO -->
     <div class="card" id="seccion-pagos" style="display: none;">
       <h2>2. Subir Comprobante de Pago</h2>
       <form id="form-pago">
@@ -112,10 +115,14 @@
           </select>
         </div>
         
-        <!-- NUEVO SISTEMA DE MESES -->
+        <!-- NUEVO SISTEMA DE MESES MEJORADO -->
         <div class="form-group">
-          <label>Meses a pagar (Haz clic para seleccionar uno o varios)</label>
-          <div id="pago-meses-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+          <label>Selecciona los meses a pagar (Haz clic en los botones)</label>
+          <div class="meses-toolbar">
+            <button type="button" class="btn-select-all" id="btn-toggle-meses">Seleccionar Todo</button>
+            <span class="contador-meses" id="contador-meses">0 meses seleccionados</span>
+          </div>
+          <div id="pago-meses-container" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
         </div>
 
         <div class="form-group">
