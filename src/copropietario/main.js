@@ -95,9 +95,6 @@ async function cargarBienes() {
       document.getElementById('seccion-pagos').style.display = 'block';
     }
 
-    // Ocultar el formulario de agregar bien si ya tiene bienes (opcional, depende de tu regla)
-    // document.getElementById('seccion-agregar-bien').style.display = 'none';
-
   } catch (error) {
     console.error("Error al cargar bienes:", error);
   }
@@ -153,14 +150,19 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.innerText = "Enviando...";
 
   const bienId = document.getElementById('pago-bien-id').value;
-  const mesesSelect = document.getElementById('pago-meses');
-  const mesesPagados = Array.from(mesesSelect.selectedOptions).map(opt => opt.value);
+  
+  // CAPTURAR MESES SELECCIONADOS DESDE LOS CHECKBOXES
+  const checkboxesSeleccionados = document.querySelectorAll('.mes-checkbox:checked');
+  const mesesPagados = Array.from(checkboxesSeleccionados).map(cb => cb.value);
+  
   const depositante = document.getElementById('pago-depositante').value;
   const monto = parseFloat(document.getElementById('pago-monto').value);
   const foto = document.getElementById('pago-foto').files[0];
 
   if (mesesPagados.length === 0) {
-    alert("Selecciona al menos un mes."); btn.disabled = false; btn.innerText = "Enviar Comprobante"; return;
+    alert("Selecciona al menos un mes haciendo clic en las etiquetas."); 
+    btn.disabled = false; btn.innerText = "Enviar Comprobante"; 
+    return;
   }
 
   try {
@@ -187,7 +189,9 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
 
     alert("Comprobante enviado. Espera la validación del administrador.");
     e.target.reset();
-    generarMesesParaPago(); // Resetear meses
+    
+    // Desmarcar los checkboxes visualmente
+    checkboxesSeleccionados.forEach(cb => cb.checked = false);
 
   } catch (error) {
     console.error(error);
@@ -197,25 +201,28 @@ document.getElementById('form-pago').addEventListener('submit', async (e) => {
   }
 });
 
-// --- 6. GENERAR MESES (Últimos 3) ---
+// --- 6. GENERAR MESES (Todo el año actual) ---
 function generarMesesParaPago() {
-  const select = document.getElementById('pago-meses');
-  select.innerHTML = '';
+  const container = document.getElementById('pago-meses-container');
+  if (!container) return;
+  container.innerHTML = '';
   
-  const hoy = new Date();
+  const anioActual = new Date().getFullYear();
   const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-  // Generamos los últimos 3 meses
-  for (let i = 0; i < 3; i++) {
-    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-    const valor = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-    const texto = `${nombresMeses[fecha.getMonth()]} ${fecha.getFullYear()}`;
-    
-    const option = document.createElement('option');
-    option.value = valor;
-    option.innerText = texto;
-    select.appendChild(option);
-  }
+  // Generamos los 12 meses del año actual
+  nombresMeses.forEach((mes, index) => {
+    const mesNumero = String(index + 1).padStart(2, '0');
+    const valor = `${anioActual}-${mesNumero}`;
+
+    const label = document.createElement('label');
+    label.className = 'mes-label';
+    label.innerHTML = `
+      <input type="checkbox" class="mes-checkbox" value="${valor}">
+      ${mes} ${anioActual}
+    `;
+    container.appendChild(label);
+  });
 }
 
 // --- 7. CARGAR HISTORIAL ---
@@ -223,14 +230,12 @@ async function cargarHistorial() {
   const tbody = document.getElementById('tabla-historial');
   
   try {
-    // Si es master, ve todo. Si no, solo lo suyo.
     let query = supabase.from('historial_pagos').select(`
       *,
       bienes ( identificador, tipo )
     `);
 
     if (!usuarioActual.es_master) {
-      // Necesitamos los IDs de sus bienes para filtrar
       const idsBienes = misBienes.map(b => b.id);
       if (idsBienes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5">No hay historial.</td></tr>';

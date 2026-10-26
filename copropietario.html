@@ -24,8 +24,20 @@
     .form-group { margin-bottom: 15px; }
     label { display: block; margin-bottom: 5px; font-weight: bold; }
     input, select { width: 100%; padding: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; box-sizing: border-box; }
-    button[type="submit"], .btn-action { background: var(--success, #22c55e); color: #000; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+    button[type="submit"], .btn-action { background: var(--success, #22c55e); color: #000; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.2s; }
     button[type="submit"]:hover { opacity: 0.9; }
+    button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ESTILOS PARA LOS BOTONES DE MESES */
+    .mes-label {
+      display: flex; align-items: center; gap: 5px; background: var(--surface);
+      padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+      cursor: pointer; user-select: none; transition: 0.2s; font-size: 14px;
+    }
+    .mes-label:has(input:checked) {
+      background: var(--primary); color: white; border-color: var(--primary);
+    }
+    .mes-label input { cursor: pointer; margin: 0; width: auto; }
     
     /* Tablas */
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -60,7 +72,7 @@
         <p>Cargando tus bienes...</p>
       </div>
 
-      <!-- Formulario para agregar nuevo bien (oculto si ya tiene) -->
+      <!-- Formulario para agregar nuevo bien -->
       <div id="seccion-agregar-bien" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border);">
         <h3>Registrar un nuevo bien</h3>
         <form id="form-bien">
@@ -99,12 +111,13 @@
             <option value="">Cargando bienes...</option>
           </select>
         </div>
+        
+        <!-- NUEVO SISTEMA DE MESES -->
         <div class="form-group">
-          <label>Meses a pagar (Solo últimos 3 meses)</label>
-          <select id="pago-meses" multiple required style="height: 100px;">
-            <!-- Se llena por JS -->
-          </select>
+          <label>Meses a pagar (Haz clic para seleccionar uno o varios)</label>
+          <div id="pago-meses-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
         </div>
+
         <div class="form-group">
           <label>Nombre del depositante</label>
           <input type="text" id="pago-depositante" required />
